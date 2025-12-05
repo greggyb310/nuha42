@@ -2,12 +2,14 @@ import { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
+import { useLocation } from '../../hooks/useLocation';
 import { LoadingSpinner, Button } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, profile, signOut } = useAuth();
+  const { coordinates, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -32,11 +34,53 @@ export default function HomeScreen() {
     router.replace('/auth/login');
   };
 
+  const handleTestLocation = async () => {
+    console.log('=== LOCATION TEST STARTED ===');
+    await getCurrentLocation();
+    console.log('=== LOCATION TEST COMPLETED ===');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.greeting}>Hello{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}!</Text>
       <Text style={styles.title}>NatureUP Health</Text>
       <Text style={styles.subtitle}>Your personalized nature therapy companion</Text>
+
+      <View style={styles.locationTestCard}>
+        <Text style={styles.testCardTitle}>Location Test - Phase 1</Text>
+        <Text style={styles.testCardSubtitle}>Testing core location hook functionality</Text>
+
+        <Button
+          title={locationLoading ? "Getting Location..." : "Get My Location"}
+          onPress={handleTestLocation}
+          disabled={locationLoading}
+          style={styles.testButton}
+        />
+
+        {locationError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{locationError}</Text>
+          </View>
+        )}
+
+        {coordinates && (
+          <View style={styles.coordinatesContainer}>
+            <Text style={styles.coordinatesLabel}>Current Location:</Text>
+            <Text style={styles.coordinatesValue}>
+              Lat: {coordinates.latitude.toFixed(6)}
+            </Text>
+            <Text style={styles.coordinatesValue}>
+              Lon: {coordinates.longitude.toFixed(6)}
+            </Text>
+            {coordinates.accuracy && (
+              <Text style={styles.coordinatesValue}>
+                Accuracy: {coordinates.accuracy.toFixed(1)}m
+              </Text>
+            )}
+            <Text style={styles.infoText}>Check console for detailed logs</Text>
+          </View>
+        )}
+      </View>
 
       {profile && (
         <View style={styles.profileCard}>
@@ -134,5 +178,66 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     width: '100%',
+  },
+  locationTestCard: {
+    width: '100%',
+    maxWidth: 400,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  testCardTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  testCardSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  testButton: {
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: '#FEE2E2',
+    borderRadius: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  errorText: {
+    fontSize: typography.sizes.sm,
+    color: '#DC2626',
+    lineHeight: typography.lineHeights.normal * typography.sizes.sm,
+  },
+  coordinatesContainer: {
+    padding: spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  coordinatesLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  coordinatesValue: {
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+    fontFamily: 'monospace',
+  },
+  infoText: {
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
 });
