@@ -43,6 +43,8 @@ export interface UserPreferences {
   max_distance_km?: number;
   fitness_level?: 'beginner' | 'intermediate' | 'advanced';
   accessibility_needs?: string[];
+  map_provider?: 'google' | 'apple';
+  unit_system?: 'imperial' | 'metric';
 }
 
 export interface Excursion {
