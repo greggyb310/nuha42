@@ -39,9 +39,11 @@ export const databaseService = {
         user_id: userId,
         ...updates,
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
       })
       .select()
-      .maybeSingle();
+      .single();
     return { data: data as UserProfile | null, error };
   },
 
