@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import { View, TextInput, Text, StyleSheet, ViewStyle, TextStyle, TextInputProps } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../constants/theme';
 
@@ -12,7 +12,7 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
   rightIcon?: React.ReactNode;
 }
 
-export const Input: React.FC<InputProps> = ({
+export const Input = forwardRef<TextInput, InputProps>(({
   label,
   error,
   helperText,
@@ -21,7 +21,7 @@ export const Input: React.FC<InputProps> = ({
   leftIcon,
   rightIcon,
   ...textInputProps
-}) => {
+}, ref) => {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -38,6 +38,7 @@ export const Input: React.FC<InputProps> = ({
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
 
         <TextInput
+          ref={ref}
           style={[
             styles.input,
             leftIcon ? styles.inputWithLeftIcon : undefined,
@@ -57,7 +58,7 @@ export const Input: React.FC<InputProps> = ({
       {!error && helperText && <Text style={styles.helperText}>{helperText}</Text>}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

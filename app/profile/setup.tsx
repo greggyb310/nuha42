@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, AppState, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Button, Input, Card, Badge, LoadingSpinner } from '../../components';
@@ -48,6 +48,26 @@ export default function ProfileSetupScreen() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const nameInputRef = useRef<TextInput>(null);
+  const appState = useRef(AppState.currentState);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        if (nameInputRef.current?.isFocused()) {
+          setTimeout(() => {
+            nameInputRef.current?.focus();
+          }, 100);
+        }
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const toggleGoal = (goal: string) => {
     if (selectedGoals.includes(goal)) {
@@ -141,6 +161,7 @@ export default function ProfileSetupScreen() {
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Basic Information</Text>
             <Input
+              ref={nameInputRef}
               label="Full Name"
               placeholder="Enter your full name"
               value={fullName}
