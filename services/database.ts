@@ -33,28 +33,16 @@ export const databaseService = {
   },
 
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<DatabaseResponse<UserProfile>> {
-    const { data: existing } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles')
-      .select('*')
-      .eq('user_id', userId)
+      .upsert({
+        user_id: userId,
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .select()
       .maybeSingle();
-
-    if (existing) {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .select()
-        .single();
-      return { data: data as UserProfile | null, error };
-    } else {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .insert({ user_id: userId, ...updates })
-        .select()
-        .single();
-      return { data: data as UserProfile | null, error };
-    }
+    return { data: data as UserProfile | null, error };
   },
 
   async getUserExcursions(userId: string, completed?: boolean): Promise<DatabaseResponse<Excursion[]>> {
