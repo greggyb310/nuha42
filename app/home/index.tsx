@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useLocation } from '../../hooks/useLocation';
-import { LoadingSpinner, Button } from '../../components';
+import { LoadingSpinner, Button, Map } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
 
 export default function HomeScreen() {
@@ -51,8 +51,8 @@ export default function HomeScreen() {
       <Text style={styles.subtitle}>Your personalized nature therapy companion</Text>
 
       <View style={styles.locationTestCard}>
-        <Text style={styles.testCardTitle}>Location Test - Phase 1</Text>
-        <Text style={styles.testCardSubtitle}>Testing core location hook functionality</Text>
+        <Text style={styles.testCardTitle}>Location Test - Phase 2</Text>
+        <Text style={styles.testCardSubtitle}>Testing map visualization with location data</Text>
 
         <Button
           title={locationLoading ? "Getting Location..." : "Get My Location"}
@@ -68,20 +68,16 @@ export default function HomeScreen() {
         )}
 
         {coordinates && (
-          <View style={styles.coordinatesContainer}>
-            <Text style={styles.coordinatesLabel}>Current Location:</Text>
-            <Text style={styles.coordinatesValue}>
-              Lat: {coordinates.latitude.toFixed(6)}
-            </Text>
-            <Text style={styles.coordinatesValue}>
-              Lon: {coordinates.longitude.toFixed(6)}
-            </Text>
+          <View style={styles.mapContainer}>
+            <Map
+              latitude={coordinates.latitude}
+              longitude={coordinates.longitude}
+            />
             {coordinates.accuracy && (
-              <Text style={styles.coordinatesValue}>
+              <Text style={styles.accuracyText}>
                 Accuracy: {coordinates.accuracy.toFixed(1)}m
               </Text>
             )}
-            <Text style={styles.infoText}>Check console for detailed logs</Text>
           </View>
         )}
       </View>
@@ -223,29 +219,13 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     lineHeight: typography.lineHeights.normal * typography.sizes.sm,
   },
-  coordinatesContainer: {
-    padding: spacing.md,
-    backgroundColor: colors.background,
-    borderRadius: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.accent,
+  mapContainer: {
+    width: '100%',
   },
-  coordinatesLabel: {
+  accuracyText: {
     fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  coordinatesValue: {
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    fontFamily: 'monospace',
-  },
-  infoText: {
-    fontSize: typography.sizes.xs,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });

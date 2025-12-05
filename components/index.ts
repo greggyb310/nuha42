@@ -14,3 +14,5 @@ export type { AvatarSize } from './Avatar';
 
 export { Badge } from './Badge';
 export type { BadgeVariant, BadgeSize } from './Badge';
+
+export { Map } from './Map';
