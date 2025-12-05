@@ -43,7 +43,7 @@ export const databaseService = {
         onConflict: 'user_id'
       })
       .select()
-      .single();
+      .maybeSingle();
     return { data: data as UserProfile | null, error };
   },
 
