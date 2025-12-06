@@ -3,7 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req: Request) => {
@@ -15,9 +15,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    console.log("=== TEST CHECKPOINT 1 ===");
+    console.log("Request URL:", req.url);
+    console.log("Request Method:", req.method);
+    console.log("Request Headers:", JSON.stringify([...req.headers.entries()]));
+    
     const payload = await req.json();
     
-    console.log("=== TEST CHECKPOINT 1 ===");
     console.log("Received NatureUpRequest:");
     console.log(JSON.stringify(payload, null, 2));
     console.log("=========================");
@@ -25,11 +29,12 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Payload received and logged",
+        message: "Payload received and logged successfully!",
         receivedAt: new Date().toISOString(),
         payloadSize: JSON.stringify(payload).length,
       }),
       {
+        status: 200,
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
@@ -41,7 +46,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
       {
         status: 400,

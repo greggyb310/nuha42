@@ -53,6 +53,12 @@ export async function sendTestRequest(): Promise<{
     }
 
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!anonKey) {
+      throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY is not configured');
+    }
+
     const functionUrl = `${supabaseUrl}/functions/v1/test-request`;
 
     console.log('Sending test payload to:', functionUrl);
@@ -62,6 +68,7 @@ export async function sendTestRequest(): Promise<{
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
+        'apikey': anonKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(testPayload),
