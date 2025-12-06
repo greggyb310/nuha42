@@ -7,6 +7,7 @@ import { useWeather } from '../../hooks/useWeather';
 import { LoadingSpinner, Button, Map, WeatherCard } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
 import { sendTestRequest } from '../../services/test-api';
+import { sendValidRequest, sendInvalidRequest } from '../../services/validate-request-api';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,6 +20,11 @@ export default function HomeScreen() {
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
+
+  const [checkpoint2Loading, setCheckpoint2Loading] = useState(false);
+  const [checkpoint2Result, setCheckpoint2Result] = useState<string | null>(null);
+  const [checkpoint2Error, setCheckpoint2Error] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -68,6 +74,47 @@ export default function HomeScreen() {
     }
   };
 
+  const handleValidRequest = async () => {
+    console.log('=== TEST CHECKPOINT 2: VALID REQUEST ===');
+    setCheckpoint2Loading(true);
+    setCheckpoint2Error(null);
+    setCheckpoint2Result(null);
+    setValidationErrors(null);
+
+    const result = await sendValidRequest();
+
+    setCheckpoint2Loading(false);
+
+    if (result.success) {
+      setCheckpoint2Result(result.message || 'Valid request accepted!');
+      console.log('=== VALID REQUEST TEST PASSED ===');
+    } else {
+      setCheckpoint2Error(result.error || 'Unknown error');
+      console.log('=== VALID REQUEST TEST FAILED ===');
+    }
+  };
+
+  const handleInvalidRequest = async () => {
+    console.log('=== TEST CHECKPOINT 2: INVALID REQUEST ===');
+    setCheckpoint2Loading(true);
+    setCheckpoint2Error(null);
+    setCheckpoint2Result(null);
+    setValidationErrors(null);
+
+    const result = await sendInvalidRequest();
+
+    setCheckpoint2Loading(false);
+
+    if (result.success) {
+      setCheckpoint2Result(result.message || 'Invalid request correctly rejected!');
+      setValidationErrors(result.errors || null);
+      console.log('=== INVALID REQUEST TEST PASSED ===');
+    } else {
+      setCheckpoint2Error(result.error || 'Unknown error');
+      console.log('=== INVALID REQUEST TEST FAILED ===');
+    }
+  };
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -99,6 +146,49 @@ export default function HomeScreen() {
           <View style={styles.successContainer}>
             <Text style={styles.successText}>{testResult}</Text>
             <Text style={styles.successHint}>Check console logs for full payload</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.checkpoint2Card}>
+        <Text style={styles.testCardTitle}>Test Checkpoint 2</Text>
+        <Text style={styles.testCardSubtitle}>Validate NatureUpRequest schema and reject invalid payloads</Text>
+
+        <Button
+          title={checkpoint2Loading ? "Testing..." : "Send Valid Request"}
+          onPress={handleValidRequest}
+          disabled={checkpoint2Loading}
+          style={styles.testButton}
+        />
+
+        <Button
+          title={checkpoint2Loading ? "Testing..." : "Send Invalid Request"}
+          onPress={handleInvalidRequest}
+          disabled={checkpoint2Loading}
+          variant="secondary"
+          style={styles.testButton}
+        />
+
+        {checkpoint2Error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{checkpoint2Error}</Text>
+          </View>
+        )}
+
+        {checkpoint2Result && (
+          <View style={styles.successContainer}>
+            <Text style={styles.successText}>{checkpoint2Result}</Text>
+            {validationErrors && validationErrors.length > 0 && (
+              <View style={styles.errorsListContainer}>
+                <Text style={styles.errorsListTitle}>Validation Errors Detected:</Text>
+                {validationErrors.map((err, index) => (
+                  <Text key={index} style={styles.errorDetailText}>
+                    {err.field}: {err.message}
+                  </Text>
+                ))}
+              </View>
+            )}
+            <Text style={styles.successHint}>Check console logs for full details</Text>
           </View>
         )}
       </View>
@@ -255,6 +345,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#7FA957',
   },
+  checkpoint2Card: {
+    width: '100%',
+    maxWidth: 400,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderColor: '#4A7C2E',
+  },
   locationTestCard: {
     width: '100%',
     maxWidth: 400,
@@ -315,5 +415,23 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.sm,
     textAlign: 'center',
+  },
+  errorsListContainer: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#047857',
+  },
+  errorsListTitle: {
+    fontSize: typography.sizes.xs,
+    color: '#047857',
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.xs,
+  },
+  errorDetailText: {
+    fontSize: typography.sizes.xs,
+    color: '#065F46',
+    marginBottom: spacing.xs,
+    paddingLeft: spacing.sm,
   },
 });
