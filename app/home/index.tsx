@@ -4,27 +4,21 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useLocation } from '../../hooks/useLocation';
 import { useWeather } from '../../hooks/useWeather';
-import { LoadingSpinner, Button, Map, WeatherCard } from '../../components';
+import { LoadingSpinner, Button, WeatherCard } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
-import { sendTestRequest } from '../../services/test-api';
-import { sendValidRequest, sendInvalidRequest } from '../../services/validate-request-api';
+import { testAssistantToolCall } from '../../services/test-assistant-api';
+import type { AssistantTestResult } from '../../types/assistant';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, profile, signOut } = useAuth();
-  const { coordinates, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
+  const { coordinates } = useLocation();
   const { weather, loading: weatherLoading, error: weatherError, refresh: refreshWeather } = useWeather(
     coordinates?.latitude,
     coordinates?.longitude
   );
-  const [testLoading, setTestLoading] = useState(false);
-  const [testResult, setTestResult] = useState<string | null>(null);
-  const [testError, setTestError] = useState<string | null>(null);
-
-  const [checkpoint2Loading, setCheckpoint2Loading] = useState(false);
-  const [checkpoint2Result, setCheckpoint2Result] = useState<string | null>(null);
-  const [checkpoint2Error, setCheckpoint2Error] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<any[] | null>(null);
+  const [checkpoint3Loading, setCheckpoint3Loading] = useState(false);
+  const [checkpoint3Result, setCheckpoint3Result] = useState<AssistantTestResult | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -49,69 +43,20 @@ export default function HomeScreen() {
     router.replace('/auth/login');
   };
 
-  const handleTestLocation = async () => {
-    console.log('=== LOCATION TEST STARTED ===');
-    await getCurrentLocation();
-    console.log('=== LOCATION TEST COMPLETED ===');
-  };
+  const handleTestCheckpoint3 = async () => {
+    console.log('=== TEST CHECKPOINT 3 STARTED ===');
+    setCheckpoint3Loading(true);
+    setCheckpoint3Result(null);
 
-  const handleTestCheckpoint1 = async () => {
-    console.log('=== TEST CHECKPOINT 1 STARTED ===');
-    setTestLoading(true);
-    setTestError(null);
-    setTestResult(null);
+    const result = await testAssistantToolCall();
 
-    const result = await sendTestRequest();
+    setCheckpoint3Loading(false);
+    setCheckpoint3Result(result);
 
-    setTestLoading(false);
-
-    if (result.success) {
-      setTestResult(result.message || 'Success!');
-      console.log('=== TEST CHECKPOINT 1 PASSED ===');
+    if (result.success && result.hasToolCall) {
+      console.log('=== TEST CHECKPOINT 3 PASSED ===');
     } else {
-      setTestError(result.error || 'Unknown error');
-      console.log('=== TEST CHECKPOINT 1 FAILED ===');
-    }
-  };
-
-  const handleValidRequest = async () => {
-    console.log('=== TEST CHECKPOINT 2: VALID REQUEST ===');
-    setCheckpoint2Loading(true);
-    setCheckpoint2Error(null);
-    setCheckpoint2Result(null);
-    setValidationErrors(null);
-
-    const result = await sendValidRequest();
-
-    setCheckpoint2Loading(false);
-
-    if (result.success) {
-      setCheckpoint2Result(result.message || 'Valid request accepted!');
-      console.log('=== VALID REQUEST TEST PASSED ===');
-    } else {
-      setCheckpoint2Error(result.error || 'Unknown error');
-      console.log('=== VALID REQUEST TEST FAILED ===');
-    }
-  };
-
-  const handleInvalidRequest = async () => {
-    console.log('=== TEST CHECKPOINT 2: INVALID REQUEST ===');
-    setCheckpoint2Loading(true);
-    setCheckpoint2Error(null);
-    setCheckpoint2Result(null);
-    setValidationErrors(null);
-
-    const result = await sendInvalidRequest();
-
-    setCheckpoint2Loading(false);
-
-    if (result.success) {
-      setCheckpoint2Result(result.message || 'Invalid request correctly rejected!');
-      setValidationErrors(result.errors || null);
-      console.log('=== INVALID REQUEST TEST PASSED ===');
-    } else {
-      setCheckpoint2Error(result.error || 'Unknown error');
-      console.log('=== INVALID REQUEST TEST FAILED ===');
+      console.log('=== TEST CHECKPOINT 3 FAILED ===');
     }
   };
 
@@ -125,103 +70,52 @@ export default function HomeScreen() {
       <Text style={styles.title}>NatureUP Health</Text>
       <Text style={styles.subtitle}>Your personalized nature therapy companion</Text>
 
-      <View style={styles.testCheckpointCard}>
-        <Text style={styles.testCardTitle}>Test Checkpoint 1</Text>
-        <Text style={styles.testCardSubtitle}>Send static JSON payload to Edge Function (no AI)</Text>
+      <View style={styles.checkpoint3Card}>
+        <Text style={styles.testCardTitle}>Test Checkpoint 3</Text>
+        <Text style={styles.testCardSubtitle}>Verify OpenAI Assistant responds with tool calls (not natural language)</Text>
 
         <Button
-          title={testLoading ? "Sending..." : "Send Test Request"}
-          onPress={handleTestCheckpoint1}
-          disabled={testLoading}
+          title={checkpoint3Loading ? "Testing Assistant..." : "Test Assistant Tool Call"}
+          onPress={handleTestCheckpoint3}
+          disabled={checkpoint3Loading}
           style={styles.testButton}
         />
 
-        {testError && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{testError}</Text>
+        {checkpoint3Loading && (
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size="small" />
+            <Text style={styles.loadingText}>Creating thread and polling assistant...</Text>
           </View>
         )}
 
-        {testResult && (
-          <View style={styles.successContainer}>
-            <Text style={styles.successText}>{testResult}</Text>
-            <Text style={styles.successHint}>Check console logs for full payload</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.checkpoint2Card}>
-        <Text style={styles.testCardTitle}>Test Checkpoint 2</Text>
-        <Text style={styles.testCardSubtitle}>Validate NatureUpRequest schema and reject invalid payloads</Text>
-
-        <Button
-          title={checkpoint2Loading ? "Testing..." : "Send Valid Request"}
-          onPress={handleValidRequest}
-          disabled={checkpoint2Loading}
-          style={styles.testButton}
-        />
-
-        <Button
-          title={checkpoint2Loading ? "Testing..." : "Send Invalid Request"}
-          onPress={handleInvalidRequest}
-          disabled={checkpoint2Loading}
-          variant="secondary"
-          style={styles.testButton}
-        />
-
-        {checkpoint2Error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{checkpoint2Error}</Text>
-          </View>
-        )}
-
-        {checkpoint2Result && (
-          <View style={styles.successContainer}>
-            <Text style={styles.successText}>{checkpoint2Result}</Text>
-            {validationErrors && validationErrors.length > 0 && (
-              <View style={styles.errorsListContainer}>
-                <Text style={styles.errorsListTitle}>Validation Errors Detected:</Text>
-                {validationErrors.map((err, index) => (
-                  <Text key={index} style={styles.errorDetailText}>
-                    {err.field}: {err.message}
-                  </Text>
-                ))}
+        {checkpoint3Result && !checkpoint3Loading && (
+          <>
+            {checkpoint3Result.success && checkpoint3Result.hasToolCall ? (
+              <View style={styles.successContainer}>
+                <Text style={styles.successText}>Assistant responded with tool call!</Text>
+                <View style={styles.toolCallInfo}>
+                  <Text style={styles.toolCallLabel}>Tool Name:</Text>
+                  <Text style={styles.toolCallValue}>{checkpoint3Result.toolCall?.toolName}</Text>
+                  <Text style={[styles.toolCallLabel, styles.toolCallLabelSpaced]}>Arguments Preview:</Text>
+                  <View style={styles.codeBox}>
+                    <Text style={styles.codeText}>
+                      {JSON.stringify(checkpoint3Result.toolCall?.arguments, null, 2).substring(0, 200)}...
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.successHint}>Check console for full tool call details</Text>
+              </View>
+            ) : (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                  {checkpoint3Result.error || 'Assistant did not respond with tool calls'}
+                </Text>
+                <Text style={styles.errorHint}>
+                  The assistant needs to be configured with tool definitions
+                </Text>
               </View>
             )}
-            <Text style={styles.successHint}>Check console logs for full details</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.locationTestCard}>
-        <Text style={styles.testCardTitle}>Location Test - Phase 2</Text>
-        <Text style={styles.testCardSubtitle}>Testing map visualization with location data</Text>
-
-        <Button
-          title={locationLoading ? "Getting Location..." : "Get My Location"}
-          onPress={handleTestLocation}
-          disabled={locationLoading}
-          style={styles.testButton}
-        />
-
-        {locationError && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{locationError}</Text>
-          </View>
-        )}
-
-        {coordinates && (
-          <View style={styles.mapContainer}>
-            <Map
-              latitude={coordinates.latitude}
-              longitude={coordinates.longitude}
-            />
-            {coordinates.accuracy && (
-              <Text style={styles.accuracyText}>
-                Accuracy: {coordinates.accuracy.toFixed(1)}m
-              </Text>
-            )}
-          </View>
+          </>
         )}
       </View>
 
@@ -335,35 +229,15 @@ const styles = StyleSheet.create({
   signOutButton: {
     width: '100%',
   },
-  testCheckpointCard: {
+  checkpoint3Card: {
     width: '100%',
     maxWidth: 400,
     padding: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: spacing.md,
     marginBottom: spacing.lg,
-    borderWidth: 2,
-    borderColor: '#7FA957',
-  },
-  checkpoint2Card: {
-    width: '100%',
-    maxWidth: 400,
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 2,
-    borderColor: '#4A7C2E',
-  },
-  locationTestCard: {
-    width: '100%',
-    maxWidth: 400,
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 2,
-    borderColor: colors.accent,
+    borderWidth: 3,
+    borderColor: '#2E7C4A',
   },
   testCardTitle: {
     fontSize: typography.sizes.lg,
@@ -407,31 +281,57 @@ const styles = StyleSheet.create({
     color: '#047857',
     fontStyle: 'italic',
   },
-  mapContainer: {
-    width: '100%',
+  loadingContainer: {
+    padding: spacing.md,
+    backgroundColor: '#F0F4F8',
+    borderRadius: spacing.sm,
+    alignItems: 'center',
+    marginTop: spacing.sm,
   },
-  accuracyText: {
+  loadingText: {
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    textAlign: 'center',
   },
-  errorsListContainer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+  toolCallInfo: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: '#047857',
   },
-  errorsListTitle: {
+  toolCallLabel: {
     fontSize: typography.sizes.xs,
-    color: '#047857',
     fontWeight: typography.weights.semibold,
+    color: '#047857',
     marginBottom: spacing.xs,
   },
-  errorDetailText: {
-    fontSize: typography.sizes.xs,
+  toolCallLabelSpaced: {
+    marginTop: spacing.md,
+  },
+  toolCallValue: {
+    fontSize: typography.sizes.base,
     color: '#065F46',
-    marginBottom: spacing.xs,
-    paddingLeft: spacing.sm,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.md,
+  },
+  codeBox: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: spacing.sm,
+    padding: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  codeText: {
+    fontSize: typography.sizes.xs,
+    fontFamily: 'monospace',
+    color: '#374151',
+    lineHeight: typography.sizes.xs * 1.5,
+  },
+  errorHint: {
+    fontSize: typography.sizes.xs,
+    color: '#DC2626',
+    fontStyle: 'italic',
+    marginTop: spacing.xs,
   },
 });

@@ -138,3 +138,62 @@ Key responsibilities:
 
 User Context: You will receive the user's location, preferences, health goals, and current weather data. Use all available information to create the most beneficial excursion.`,
 } as const;
+
+export interface ExcursionPlan {
+  id: string;
+  title: string;
+  summary: string;
+  waypoints: Array<{
+    latitude: number;
+    longitude: number;
+    name: string;
+    description: string;
+    order: number;
+  }>;
+  duration_minutes: number;
+  distance_km: number;
+  difficulty: 'easy' | 'moderate' | 'challenging';
+  terrain_type: string;
+  therapeutic_benefits: string[];
+}
+
+export interface CoachingResponse {
+  spokenText: string;
+  intent: 'motivate' | 'advise' | 'encourage' | 'educate' | 'celebrate';
+  exercises?: Array<{
+    name: string;
+    description: string;
+    duration_minutes?: number;
+  }>;
+  follow_up_suggestions?: string[];
+}
+
+export interface AppStateUpdate {
+  navigation?: {
+    screen: string;
+    params?: Record<string, any>;
+  };
+  uiHints?: {
+    highlight?: string[];
+    show_modal?: string;
+    toast_message?: string;
+  };
+  persistence?: {
+    save_conversation?: boolean;
+    save_excursion?: boolean;
+    update_profile?: Record<string, any>;
+  };
+}
+
+export interface ToolCallResponse {
+  toolName: 'plan_excursion' | 'coach_user' | 'update_app_state';
+  arguments: ExcursionPlan | CoachingResponse | AppStateUpdate;
+}
+
+export interface AssistantTestResult {
+  success: boolean;
+  hasToolCall: boolean;
+  toolCall?: ToolCallResponse;
+  rawResponse?: any;
+  error?: string;
+}
