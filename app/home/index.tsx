@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useLocation } from '../../hooks/useLocation';
-import { useMapPreferences } from '../../hooks/useMapPreferences';
 import { LoadingSpinner, Button, Map } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
 
@@ -11,7 +10,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, profile, signOut } = useAuth();
   const { coordinates, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
-  const { mapProvider } = useMapPreferences();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -74,7 +72,6 @@ export default function HomeScreen() {
             <Map
               latitude={coordinates.latitude}
               longitude={coordinates.longitude}
-              provider={mapProvider}
             />
             {coordinates.accuracy && (
               <Text style={styles.accuracyText}>

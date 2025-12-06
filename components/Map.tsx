@@ -1,15 +1,14 @@
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { colors, typography, spacing } from '../constants/theme';
 
 interface MapProps {
   latitude: number;
   longitude: number;
   showMarker?: boolean;
-  provider?: 'google' | 'apple';
 }
 
-export function Map({ latitude, longitude, showMarker = true, provider = 'google' }: MapProps) {
+export function Map({ latitude, longitude, showMarker = true }: MapProps) {
   if (Platform.OS === 'web') {
     return (
       <View style={styles.webFallback}>
@@ -23,12 +22,10 @@ export function Map({ latitude, longitude, showMarker = true, provider = 'google
     );
   }
 
-  const mapProvider = provider === 'google' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT;
-
   return (
     <MapView
       style={styles.map}
-      provider={mapProvider}
+      provider={PROVIDER_DEFAULT}
       initialRegion={{
         latitude,
         longitude,
