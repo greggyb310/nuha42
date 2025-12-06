@@ -3,13 +3,18 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useLocation } from '../../hooks/useLocation';
-import { LoadingSpinner, Button, Map } from '../../components';
+import { useWeather } from '../../hooks/useWeather';
+import { LoadingSpinner, Button, Map, WeatherCard } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, profile, signOut } = useAuth();
   const { coordinates, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
+  const { weather, loading: weatherLoading, error: weatherError, refresh: refreshWeather } = useWeather(
+    coordinates?.latitude,
+    coordinates?.longitude
+  );
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -81,6 +86,15 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
+
+      {coordinates && (
+        <WeatherCard
+          weather={weather}
+          loading={weatherLoading}
+          error={weatherError}
+          onRefresh={refreshWeather}
+        />
+      )}
 
       {profile && (
         <View style={styles.profileCard}>
