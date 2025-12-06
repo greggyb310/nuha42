@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import type { NatureUpRequest } from '../types/api';
 
@@ -52,11 +53,15 @@ export async function sendTestRequest(): Promise<{
       throw new Error('No active session');
     }
 
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const anonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!anonKey) {
-      throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY is not configured');
+    console.log('Debug - supabaseUrl:', supabaseUrl ? 'Found' : 'Missing');
+    console.log('Debug - anonKey:', anonKey ? 'Found' : 'Missing');
+    console.log('Debug - Constants.expoConfig.extra:', Constants.expoConfig?.extra);
+
+    if (!supabaseUrl || !anonKey) {
+      throw new Error('Missing Supabase credentials - check app.json extra section');
     }
 
     const functionUrl = `${supabaseUrl}/functions/v1/test-request`;
