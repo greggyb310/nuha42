@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
@@ -6,6 +6,7 @@ import { useLocation } from '../../hooks/useLocation';
 import { useWeather } from '../../hooks/useWeather';
 import { LoadingSpinner, Button, Map, WeatherCard } from '../../components';
 import { colors, typography, spacing } from '../../constants/theme';
+import { sendTestRequest } from '../../services/test-api';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function HomeScreen() {
     coordinates?.latitude,
     coordinates?.longitude
   );
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -45,6 +49,25 @@ export default function HomeScreen() {
     console.log('=== LOCATION TEST COMPLETED ===');
   };
 
+  const handleTestCheckpoint1 = async () => {
+    console.log('=== TEST CHECKPOINT 1 STARTED ===');
+    setTestLoading(true);
+    setTestError(null);
+    setTestResult(null);
+
+    const result = await sendTestRequest();
+
+    setTestLoading(false);
+
+    if (result.success) {
+      setTestResult(result.message || 'Success!');
+      console.log('=== TEST CHECKPOINT 1 PASSED ===');
+    } else {
+      setTestError(result.error || 'Unknown error');
+      console.log('=== TEST CHECKPOINT 1 FAILED ===');
+    }
+  };
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -54,6 +77,31 @@ export default function HomeScreen() {
       <Text style={styles.greeting}>Hello{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}!</Text>
       <Text style={styles.title}>NatureUP Health</Text>
       <Text style={styles.subtitle}>Your personalized nature therapy companion</Text>
+
+      <View style={styles.testCheckpointCard}>
+        <Text style={styles.testCardTitle}>Test Checkpoint 1</Text>
+        <Text style={styles.testCardSubtitle}>Send static JSON payload to Edge Function (no AI)</Text>
+
+        <Button
+          title={testLoading ? "Sending..." : "Send Test Request"}
+          onPress={handleTestCheckpoint1}
+          disabled={testLoading}
+          style={styles.testButton}
+        />
+
+        {testError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{testError}</Text>
+          </View>
+        )}
+
+        {testResult && (
+          <View style={styles.successContainer}>
+            <Text style={styles.successText}>{testResult}</Text>
+            <Text style={styles.successHint}>Check console logs for full payload</Text>
+          </View>
+        )}
+      </View>
 
       <View style={styles.locationTestCard}>
         <Text style={styles.testCardTitle}>Location Test - Phase 2</Text>
@@ -197,6 +245,16 @@ const styles = StyleSheet.create({
   signOutButton: {
     width: '100%',
   },
+  testCheckpointCard: {
+    width: '100%',
+    maxWidth: 400,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderColor: '#7FA957',
+  },
   locationTestCard: {
     width: '100%',
     maxWidth: 400,
@@ -232,6 +290,22 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: '#DC2626',
     lineHeight: typography.lineHeights.normal * typography.sizes.sm,
+  },
+  successContainer: {
+    padding: spacing.md,
+    backgroundColor: '#D1FAE5',
+    borderRadius: spacing.sm,
+  },
+  successText: {
+    fontSize: typography.sizes.sm,
+    color: '#065F46',
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.xs,
+  },
+  successHint: {
+    fontSize: typography.sizes.xs,
+    color: '#047857',
+    fontStyle: 'italic',
   },
   mapContainer: {
     width: '100%',
