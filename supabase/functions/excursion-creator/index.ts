@@ -71,53 +71,7 @@ function formatExcursionPrompt(req: ExcursionRequest): string {
     }
   }
 
-  parts.push('\nPlease provide the excursion in the following JSON format:');
-  parts.push(JSON.stringify({
-    title: "Excursion title",
-    description: "Detailed description of the excursion and its therapeutic benefits",
-    route_data: {
-      waypoints: [
-        {
-          latitude: 0,
-          longitude: 0,
-          name: "Waypoint name",
-          description: "Brief description",
-          order: 1
-        }
-      ],
-      start_location: {
-        latitude: req.location.latitude,
-        longitude: req.location.longitude,
-        address: req.location.address
-      },
-      end_location: {
-        latitude: 0,
-        longitude: 0,
-        address: "End location address"
-      },
-      terrain_type: "Terrain type",
-      elevation_gain: 0
-    },
-    duration_minutes: 0,
-    distance_km: 0,
-    difficulty: "easy"
-  }, null, 2));
-
   return parts.join("\n");
-}
-
-function parseExcursionResponse(text: string): any {
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-    throw new Error("No JSON found in response");
-  } catch (error) {
-    console.error("Failed to parse excursion response:", error);
-    console.error("Response text:", text);
-    throw new Error("Failed to parse excursion data from assistant response");
-  }
 }
 
 async function createExcursion(req: ExcursionRequest) {
@@ -133,52 +87,42 @@ async function createExcursion(req: ExcursionRequest) {
 
     const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
       assistant_id: ASSISTANT_IDS.EXCURSION_CREATOR,
+      tool_choice: "required",
     });
 
-    if (run.status === "completed") {
-      const messages = await openai.beta.threads.messages.list(thread.id);
-      const assistantMessage = messages.data.find((msg) => msg.role === "assistant");
-
-      if (assistantMessage && assistantMessage.content[0].type === "text") {
-        const responseText = assistantMessage.content[0].text.value;
-        const excursionData = parseExcursionResponse(responseText);
-
-        return excursionData;
-      }
-    } else if (run.status === "requires_action") {
-      if (run.required_action?.type === "submit_tool_outputs") {
-        const toolCalls = run.required_action.submit_tool_outputs.tool_calls;
-
-        if (toolCalls && toolCalls.length > 0) {
-          const planExcursionCall = toolCalls.find(call => call.function.name === "plan_excursion");
-
-          if (planExcursionCall) {
-            const excursionData = JSON.parse(planExcursionCall.function.arguments);
-            console.log("Excursion plan from tool call:", excursionData);
-
-            return {
-              title: excursionData.title,
-              description: excursionData.summary || excursionData.description,
-              route_data: {
-                waypoints: excursionData.waypoints,
-                start_location: excursionData.waypoints[0] || req.location,
-                end_location: excursionData.waypoints[excursionData.waypoints.length - 1] || req.location,
-                terrain_type: excursionData.terrain_type,
-                elevation_gain: 0
-              },
-              duration_minutes: excursionData.duration_minutes,
-              distance_km: excursionData.distance_km,
-              difficulty: excursionData.difficulty,
-              therapeutic_benefits: excursionData.therapeutic_benefits,
-            };
-          }
-        }
-      }
-
-      throw new Error("Assistant requires action but no plan_excursion tool call found");
+    if (run.status !== "requires_action") {
+      throw new Error(`Expected run to require action, but got status: ${run.status}`);
     }
 
-    throw new Error(`Run failed with status: ${run.status}`);
+    if (run.required_action?.type !== "submit_tool_outputs") {
+      throw new Error("Expected submit_tool_outputs action");
+    }
+
+    const toolCalls = run.required_action.submit_tool_outputs.tool_calls;
+    const planExcursionCall = toolCalls.find(call => call.function.name === "plan_excursion");
+
+    if (!planExcursionCall) {
+      throw new Error("No plan_excursion tool call found");
+    }
+
+    const excursionData = JSON.parse(planExcursionCall.function.arguments);
+    console.log("Excursion plan from tool call:", excursionData);
+
+    return {
+      title: excursionData.title,
+      description: excursionData.summary || excursionData.description,
+      route_data: {
+        waypoints: excursionData.waypoints,
+        start_location: excursionData.waypoints[0] || req.location,
+        end_location: excursionData.waypoints[excursionData.waypoints.length - 1] || req.location,
+        terrain_type: excursionData.terrain_type,
+        elevation_gain: 0
+      },
+      duration_minutes: excursionData.duration_minutes,
+      distance_km: excursionData.distance_km,
+      difficulty: excursionData.difficulty,
+      therapeutic_benefits: excursionData.therapeutic_benefits,
+    };
   } catch (error) {
     console.error("Error creating excursion:", error);
     throw error;
