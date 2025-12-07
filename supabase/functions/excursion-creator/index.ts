@@ -146,7 +146,36 @@ async function createExcursion(req: ExcursionRequest) {
         return excursionData;
       }
     } else if (run.status === "requires_action") {
-      throw new Error("Assistant requires function calling - not yet implemented");
+      if (run.required_action?.type === "submit_tool_outputs") {
+        const toolCalls = run.required_action.submit_tool_outputs.tool_calls;
+
+        if (toolCalls && toolCalls.length > 0) {
+          const planExcursionCall = toolCalls.find(call => call.function.name === "plan_excursion");
+
+          if (planExcursionCall) {
+            const excursionData = JSON.parse(planExcursionCall.function.arguments);
+            console.log("Excursion plan from tool call:", excursionData);
+
+            return {
+              title: excursionData.title,
+              description: excursionData.summary || excursionData.description,
+              route_data: {
+                waypoints: excursionData.waypoints,
+                start_location: excursionData.waypoints[0] || req.location,
+                end_location: excursionData.waypoints[excursionData.waypoints.length - 1] || req.location,
+                terrain_type: excursionData.terrain_type,
+                elevation_gain: 0
+              },
+              duration_minutes: excursionData.duration_minutes,
+              distance_km: excursionData.distance_km,
+              difficulty: excursionData.difficulty,
+              therapeutic_benefits: excursionData.therapeutic_benefits,
+            };
+          }
+        }
+      }
+
+      throw new Error("Assistant requires action but no plan_excursion tool call found");
     }
 
     throw new Error(`Run failed with status: ${run.status}`);
