@@ -10,7 +10,7 @@ import { colors, typography, spacing } from '../../constants/theme';
 export default function HomeScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, profile, signOut } = useAuth();
-  const { coordinates } = useLocation();
+  const { coordinates, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { weather, loading: weatherLoading, error: weatherError, refresh: refreshWeather } = useWeather(
     coordinates?.latitude,
     coordinates?.longitude
@@ -25,6 +25,13 @@ export default function HomeScreen() {
       }
     }
   }, [isLoading, isAuthenticated, profile]);
+
+  useEffect(() => {
+    if (isAuthenticated && !coordinates && !locationLoading) {
+      console.log('[HomeScreen] Fetching location on mount');
+      getCurrentLocation();
+    }
+  }, [isAuthenticated, coordinates, locationLoading]);
 
   if (isLoading) {
     return <LoadingSpinner fullScreen message="Loading..." />;
@@ -62,6 +69,24 @@ export default function HomeScreen() {
           style={styles.actionButton}
         />
       </View>
+
+      {locationLoading && !coordinates && (
+        <View style={styles.locationCard}>
+          <LoadingSpinner size="small" />
+          <Text style={styles.locationText}>Getting your location for personalized excursions...</Text>
+        </View>
+      )}
+
+      {locationError && !coordinates && (
+        <View style={styles.locationCard}>
+          <Text style={styles.errorText}>{locationError}</Text>
+          <Button
+            title="Retry"
+            onPress={getCurrentLocation}
+            style={styles.retryButton}
+          />
+        </View>
+      )}
 
       {coordinates && (
         <WeatherCard
@@ -181,5 +206,29 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+  },
+  locationCard: {
+    width: '100%',
+    maxWidth: 400,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: spacing.md,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+  errorText: {
+    fontSize: typography.sizes.sm,
+    color: '#D32F2F',
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  retryButton: {
+    minWidth: 120,
   },
 });

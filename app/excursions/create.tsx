@@ -13,7 +13,7 @@ import type { ExcursionRequest, ExcursionPreferences } from '../../types/assista
 export default function CreateExcursionScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
-  const { coordinates } = useLocation();
+  const { coordinates, loading: locationLoading, error: locationError, getCurrentLocation } = useLocation();
   const { weather } = useWeather(coordinates?.latitude, coordinates?.longitude);
 
   const [preferences, setPreferences] = useState<ExcursionPreferences>({
@@ -91,14 +91,6 @@ export default function CreateExcursionScreen() {
     }
   };
 
-  if (!coordinates) {
-    return (
-      <View style={styles.container}>
-        <LoadingSpinner fullScreen message="Getting your location..." />
-      </View>
-    );
-  }
-
   return (
     <ScrollView
       style={styles.scrollView}
@@ -107,6 +99,24 @@ export default function CreateExcursionScreen() {
     >
       <Text style={styles.title}>Create Your Excursion</Text>
       <Text style={styles.subtitle}>Customize your nature therapy experience</Text>
+
+      {locationLoading && !coordinates && (
+        <View style={styles.locationBanner}>
+          <LoadingSpinner size="small" />
+          <Text style={styles.locationBannerText}>Getting your location...</Text>
+        </View>
+      )}
+
+      {locationError && !coordinates && (
+        <View style={styles.locationBannerError}>
+          <Text style={styles.locationBannerErrorText}>{locationError}</Text>
+          <Button
+            title="Retry"
+            onPress={getCurrentLocation}
+            style={styles.retryButton}
+          />
+        </View>
+      )}
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Duration</Text>
@@ -202,9 +212,14 @@ export default function CreateExcursionScreen() {
         <Button
           title={isCreating ? "Creating..." : "Create Excursion"}
           onPress={handleCreateExcursion}
-          disabled={isCreating}
+          disabled={isCreating || !coordinates}
           style={styles.createButton}
         />
+        {!coordinates && (
+          <Text style={styles.disabledHint}>
+            Location required to create excursion
+          </Text>
+        )}
         <Button
           title="Cancel"
           onPress={() => router.back()}
@@ -310,5 +325,39 @@ const styles = StyleSheet.create({
   },
   createButton: {
     width: '100%',
+  },
+  locationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    borderRadius: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  locationBannerText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  locationBannerError: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  locationBannerErrorText: {
+    fontSize: typography.sizes.sm,
+    color: '#DC2626',
+    marginBottom: spacing.md,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+  },
+  disabledHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
